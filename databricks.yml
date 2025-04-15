@@ -1,0 +1,49 @@
+# This is a Databricks asset bundle definition for dbrx-snippets.
+# The Databricks extension requires databricks.yml configuration file.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+
+# This file configures the Databricks Asset Bundle for deployment
+bundle:
+  name: dbrx-snippets
+
+targets:
+  dev:
+    default: true
+    resources:
+      pipelines:
+        medallion_dlt_pipeline:
+          name: "E-commerce Medallion Architecture Pipeline"
+          development: true
+          libraries:
+            - file:
+                path: de/sample_dlt.py
+          clusters:
+            - label: default
+              autoscale:
+                min_workers: 1
+                max_workers: 3
+
+      jobs:
+        generate_sample_data:
+          name: "Generate Sample Data for DLT Pipeline"
+          tasks:
+            - task_key: generate_data
+              notebook_task:
+                notebook_path: de/sample_dlt_notebook.py
+              job_cluster_key: job_cluster
+          job_clusters:
+            - job_cluster_key: job_cluster
+              new_cluster:
+                spark_version: 13.3.x-scala2.12
+                node_type_id: Standard_DS3_v2
+                num_workers: 1
+
+  prod:
+    workspace:
+      host: https://e2-demo-field-eng.cloud.databricks.com
+    resources:
+      pipelines:
+        medallion_dlt_pipeline:
+          name: "E-commerce Medallion Architecture Pipeline [PROD]"
+          development: false
+          continuous: false
