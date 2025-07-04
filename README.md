@@ -2,13 +2,6 @@
 
 This project demonstrates how to implement a medallion architecture data pipeline using Delta Live Tables and how to deploy it using Databricks Asset Bundles.
 
-## Project Structure
-
-- `de/sample_dlt.py`: The DLT pipeline implementation with bronze, silver, and gold tables
-- `de/sample_dlt_notebook.py`: A tutorial notebook that explains DLT concepts and demonstrates usage
-- `de/README.md`: Documentation about the medallion architecture and DLT features
-- `databricks.yml`: Databricks Asset Bundle configuration file
-
 ## Data Storage
 
 This project uses a Databricks Volume for data storage at: `/Volumes/juan_dev/data_eng/data`
@@ -60,6 +53,12 @@ This project demonstrates the medallion architecture with:
 - **Gold Layer**: Business-level aggregates and metrics
 
 ## Learn More
+
+- [Serverless Job](https://docs.databricks.com/aws/en/jobs/run-serverless-jobs)
+- [Serverless DLT](https://docs.databricks.com/aws/en/dlt/serverless-dlt)
+- [Serverless DLT DBU Consumption](https://docs.databricks.com/aws/en/admin/usage/system-tables#serverless-dlt-cost)
+
+
 
 - [Delta Live Tables Documentation](https://docs.databricks.com/delta-live-tables/index.html)
 - [Databricks Asset Bundles](https://docs.databricks.com/dev-tools/bundles/index.html)
