@@ -49,7 +49,7 @@ targets:
           tasks:
             - task_key: generate_data
               notebook_task:
-                notebook_path: de/data_gen_job.py
+                notebook_path: de/job_data_gen.py
           tags:
             juan-jobs: data-generation
           queue:
@@ -64,7 +64,7 @@ targets:
           tasks:
             - task_key: generate_data_job
               notebook_task:
-                notebook_path: de/data_gen_job.py
+                notebook_path: de/job_data_gen.py
             - task_key: process_medallion_pipeline
               depends_on:
                 - task_key: generate_data_job

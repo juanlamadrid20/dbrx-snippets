@@ -9,10 +9,11 @@
 # MAGIC - Customer profile data (demographics, signup dates)
 # MAGIC - Some intentional data quality issues for testing DLT expectations
 
+# COMMAND ----------
 import random
 import uuid
 from datetime import datetime, timedelta
-from pyspark.sql.functions import *
+from pyspark.sql import functions as F
 from pyspark.sql.types import *
 
 # Helper function to generate sample data
@@ -162,7 +163,7 @@ def generate_customer_activity(num_customers=100, days_back=30, sessions_per_day
     
     return spark.createDataFrame(activities)
 
-
+# COMMAND ----------
 # Generate all datasets
 print("Generating e-commerce order data...")
 orders_df = generate_orders(2000)
