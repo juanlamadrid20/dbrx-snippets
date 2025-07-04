@@ -27,26 +27,58 @@ targets:
           #       min_workers: 2
           #       max_workers: 3
         
+        ml_features_pipeline:
+          name: "ml_features_pipeline"
+          development: true
+          serverless: true
+          catalog: "juan_dev"
+          schema: "data_eng"
+          continuous: false
+          libraries:
+            - file:
+                path: de/pipeline_features.py
+          configuration:
+            PIPELINE_ENV: "dev"
 
 
       jobs:
-        e2e_pipeline_job:
-          name: "benchmark_job"
+        generate_sample_data:
+          name: "Generate Sample Data"
           description: |
-            my benchmark job
+            Generate comprehensive synthetic data for both order processing and ML features
+          tasks:
+            - task_key: generate_data
+              notebook_task:
+                notebook_path: de/data_gen_job.py
+          tags:
+            juan-jobs: data-generation
+          queue:
+            enabled: true
+          budget_policy_id: e8def73b-0eea-428b-b1ff-92a9985e1686
+          performance_target: PERFORMANCE_OPTIMIZED
+
+        e2e_pipeline_job:
+          name: "End-to-End Pipeline Job"
+          description: |
+            Complete pipeline processing including order data and ML features
           tasks:
             - task_key: generate_data_job
               notebook_task:
                 notebook_path: de/data_gen_job.py
-              # job_cluster_key: job_cluster
             - task_key: process_medallion_pipeline
               depends_on:
                 - task_key: generate_data_job
               pipeline_task:
                 pipeline_id: ${resources.pipelines.medallion_dlt_pipeline.id}
                 full_refresh: false
+            - task_key: process_ml_features_pipeline
+              depends_on:
+                - task_key: generate_data_job
+              pipeline_task:
+                pipeline_id: ${resources.pipelines.ml_features_pipeline.id}
+                full_refresh: false
           tags:
-            juan-jobs: benchmark-job
+            juan-jobs: end-to-end
           queue:
             enabled: true
           budget_policy_id: e8def73b-0eea-428b-b1ff-92a9985e1686

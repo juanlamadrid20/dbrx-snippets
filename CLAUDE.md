@@ -20,10 +20,14 @@ databricks bundle deploy -t dev
 # Deploy to production
 databricks bundle deploy -t prod
 
-# Run data generation job
+# Run data generation job (generates both order and customer activity data)
 databricks bundle run -t dev generate_sample_data
 
-# Run the complete pipeline job
+# Run individual pipelines
+databricks bundle run medallion_dlt_pipeline  # Order processing pipeline
+databricks bundle run ml_features_pipeline    # ML features pipeline
+
+# Run the complete end-to-end pipeline job
 databricks bundle run -t dev e2e_pipeline_job
 ```
 
@@ -56,8 +60,9 @@ python de/pipeline_main.py
    - Demonstrates feature engineering patterns for recommendation systems
 
 4. **Data Generation** (`de/data_gen_job.py`):
-   - Generates synthetic e-commerce data with intentional quality issues
-   - Useful for testing data quality expectations and pipeline behavior
+   - Generates comprehensive synthetic data: orders, customer activity, and profiles
+   - Creates realistic customer behavior patterns with intentional quality issues
+   - Supports both order processing and ML feature pipelines
 
 ### Data Architecture
 
@@ -130,6 +135,9 @@ python de/pipeline_main.py
 ### Storage Configuration
 
 - **Data Location**: `/Volumes/juan_dev/data_eng/data`
+  - `orders_raw/`: E-commerce order data (for main pipeline)
+  - `customer_activity_raw/`: Customer session and interaction data (for ML features)
+  - `customer_profiles_raw/`: Customer demographic and profile data (for ML features)
 - **Catalog**: `juan_dev` (development), configurable per environment
 - **Schema**: `data_eng`
 
@@ -152,7 +160,24 @@ Tables follow the pattern: `{catalog}.{schema}.{layer}_{entity}`
 
 ## Testing Approach
 
-The project uses synthetic data generation (`de/data_gen_job.py`) to test the pipeline with realistic data patterns including intentional quality issues to validate expectation handling.
+The project uses comprehensive synthetic data generation (`de/data_gen_job.py`) that creates:
+
+### Generated Datasets
+1. **E-commerce Orders**: Product purchases with pricing, quantities, and order status
+2. **Customer Activity**: Realistic session data with page views, cart adds, and device patterns
+3. **Customer Profiles**: Demographics, signup dates, and loyalty information
+
+### Data Quality Testing
+- Intentional data quality issues (5% of records) including null values and invalid formats
+- Realistic distributions using exponential and normal patterns
+- Cross-dataset consistency (customer IDs match across all datasets)
+
+### ML Features Testing
+The generated data supports comprehensive ML feature engineering including:
+- Customer engagement scoring and segmentation
+- Device preference and multi-device usage patterns
+- Churn risk assessment based on activity patterns
+- Customer lifetime value and purchase behavior analysis
 
 ## Performance Optimization
 
