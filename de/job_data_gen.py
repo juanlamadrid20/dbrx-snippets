@@ -132,7 +132,8 @@ def generate_customer_activity(num_customers=100, days_back=30, sessions_per_day
                 # Cart adds are less frequent than page views
                 cart_adds = 0
                 if random.random() < 0.3:  # 30% chance of cart add
-                    cart_adds = random.randint(1, min(5, page_views // 2))
+                    max_cart_adds = max(1, min(5, page_views // 2))
+                    cart_adds = random.randint(1, max_cart_adds)
                 
                 # Purchases are even less frequent
                 purchases = 0
@@ -174,6 +175,7 @@ profiles_df = generate_customer_profiles(100)
 print("Generating customer activity data...")
 activity_df = generate_customer_activity(num_customers=100, days_back=30, sessions_per_day=8)
 
+# COMMAND ----------
 # Display sample data
 print("Sample Orders Data:")
 display(orders_df.limit(10))
@@ -189,6 +191,7 @@ print(f"Generated {orders_df.count()} order records")
 print(f"Generated {profiles_df.count()} customer profiles")
 print(f"Generated {activity_df.count()} activity records")
 
+# COMMAND ----------
 # Save the datasets to locations that can be used as sources for our DLT pipelines
 print("Saving datasets...")
 
