@@ -167,23 +167,23 @@ def features_customer_engagement():
     table_properties=config.get_gold_table_properties(["customer_id"])
 )
 def features_customer_behavior():
-    # Device usage patterns
-    device_features = (
+    # Device usage patterns - using a simpler approach
+    device_sessions = (
         dlt.read("silver_customer_activity")
         .groupBy("customer_id", "device")
-        .agg(
-            count("*").alias("session_count"),
-            sum("page_views").alias("device_page_views"),
-            sum("purchases").alias("device_purchases")
-        )
+        .agg(count("*").alias("session_count"))
         .groupBy("customer_id")
-        .pivot("device")
-        .agg(
-            first("session_count").alias("sessions"),
-            first("device_page_views").alias("page_views"),
-            first("device_purchases").alias("purchases")
-        )
+        .pivot("device", ["desktop", "mobile", "tablet"])
+        .agg(first("session_count"))
         .fillna(0)
+    )
+    
+    # Rename columns to match expected names
+    device_features = (
+        device_sessions
+        .withColumnRenamed("desktop", "desktop_sessions")
+        .withColumnRenamed("mobile", "mobile_sessions")
+        .withColumnRenamed("tablet", "tablet_sessions")
     )
     
     # Location diversity
@@ -212,65 +212,65 @@ def features_customer_behavior():
                          round(coalesce(col("desktop_sessions"), lit(0)) / col("total_sessions"), 3))
                     .otherwise(0.0))
         .withColumn("multi_device_user",
-                    when((coalesce(col("desktop_sessions"), lit(0)) > 0) +
-                         (coalesce(col("mobile_sessions"), lit(0)) > 0) +
-                         (coalesce(col("tablet_sessions"), lit(0)) > 0) >= 2, True)
+                    when((coalesce(col("desktop_sessions"), lit(0)) > 0).cast("int") +
+                         (coalesce(col("mobile_sessions"), lit(0)) > 0).cast("int") +
+                         (coalesce(col("tablet_sessions"), lit(0)) > 0).cast("int") >= 2, True)
                     .otherwise(False))
         .drop("locations_visited")  # Remove array column for simpler ML features
     )
 
-@dlt.table(
-    name=config.get_table_name("gold", "ml_feature_table"),
-    comment="Comprehensive ML feature table ready for training and inference",
-    table_properties=config.get_gold_table_properties(["customer_id", "feature_timestamp"])
-)
-def ml_feature_table():
-    engagement_features = dlt.read("features_customer_engagement")
-    behavior_features = dlt.read("features_customer_behavior") 
-    customer_profile = dlt.read("silver_customer_profile")
+# @dlt.table(
+#     name=config.get_table_name("gold", "ml_feature_table"),
+#     comment="Comprehensive ML feature table ready for training and inference",
+#     table_properties=config.get_gold_table_properties(["customer_id", "feature_timestamp"])
+# )
+# def ml_feature_table():
+#     engagement_features = dlt.read("features_customer_engagement")
+#     behavior_features = dlt.read("features_customer_behavior") 
+#     customer_profile = dlt.read("silver_customer_profile")
     
-    # Join all feature tables
-    return (
-        engagement_features
-        .join(behavior_features, "customer_id", "left")
-        .join(customer_profile, "customer_id", "left")
-        .withColumn("feature_timestamp", current_timestamp())
-        # Enhanced churn risk scoring
-        .withColumn("churn_risk_score", 
-                    when((col("days_since_last_activity") > 30) | 
-                         (col("avg_engagement_score") < 3), "high")
-                    .when((col("days_since_last_activity") > 14) | 
-                          (col("avg_engagement_score") < 8), "medium")
-                    .otherwise("low"))
-        # Customer value segmentation
-        .withColumn("customer_value_segment",
-                    when(col("total_purchases") >= 20, "high_value")
-                    .when(col("total_purchases") >= 10, "medium_value")
-                    .when(col("total_purchases") >= 3, "low_value")
-                    .otherwise("minimal_value"))
-        # Engagement level classification
-        .withColumn("engagement_level",
-                    when(col("avg_engagement_score") >= 20, "highly_engaged")
-                    .when(col("avg_engagement_score") >= 10, "moderately_engaged")
-                    .when(col("avg_engagement_score") >= 5, "lightly_engaged")
-                    .otherwise("disengaged"))
-        .select(
-            # Customer identifiers
-            "customer_id", "feature_timestamp",
-            # Engagement features
-            "total_page_views", "total_cart_adds", "total_purchases",
-            "avg_engagement_score", "max_engagement_score", "engagement_score_stddev",
-            "active_days", "total_sessions", "weekend_activity_days",
-            "avg_page_views_per_session", "conversion_rate_cart_to_purchase",
-            "days_since_last_activity", "activity_consistency_score", "avg_activity_hour",
-            # Behavioral features  
-            "desktop_sessions", "mobile_sessions", "tablet_sessions",
-            "mobile_preference_score", "desktop_preference_score", 
-            "multi_device_user", "unique_locations",
-            # Profile features
-            "age_group", "gender", "income_bracket", "loyalty_tier",
-            "days_since_signup", "customer_vintage_segment",
-            # Derived labels/scores
-            "churn_risk_score", "customer_value_segment", "engagement_level"
-        )
-    ) 
+#     # Join all feature tables
+#     return (
+#         engagement_features
+#         .join(behavior_features, "customer_id", "left")
+#         .join(customer_profile, "customer_id", "left")
+#         .withColumn("feature_timestamp", current_timestamp())
+#         # Enhanced churn risk scoring
+#         .withColumn("churn_risk_score", 
+#                     when((col("days_since_last_activity") > 30) | 
+#                          (col("avg_engagement_score") < 3), "high")
+#                     .when((col("days_since_last_activity") > 14) | 
+#                           (col("avg_engagement_score") < 8), "medium")
+#                     .otherwise("low"))
+#         # Customer value segmentation
+#         .withColumn("customer_value_segment",
+#                     when(col("total_purchases") >= 20, "high_value")
+#                     .when(col("total_purchases") >= 10, "medium_value")
+#                     .when(col("total_purchases") >= 3, "low_value")
+#                     .otherwise("minimal_value"))
+#         # Engagement level classification
+#         .withColumn("engagement_level",
+#                     when(col("avg_engagement_score") >= 20, "highly_engaged")
+#                     .when(col("avg_engagement_score") >= 10, "moderately_engaged")
+#                     .when(col("avg_engagement_score") >= 5, "lightly_engaged")
+#                     .otherwise("disengaged"))
+#         .select(
+#             # Customer identifiers
+#             "customer_id", "feature_timestamp",
+#             # Engagement features
+#             "total_page_views", "total_cart_adds", "total_purchases",
+#             "avg_engagement_score", "max_engagement_score", "engagement_score_stddev",
+#             "active_days", "total_sessions", "weekend_activity_days",
+#             "avg_page_views_per_session", "conversion_rate_cart_to_purchase",
+#             "days_since_last_activity", "activity_consistency_score", "avg_activity_hour",
+#             # Behavioral features  
+#             "desktop_sessions", "mobile_sessions", "tablet_sessions",
+#             "mobile_preference_score", "desktop_preference_score", 
+#             "multi_device_user", "unique_locations",
+#             # Profile features
+#             "age_group", "gender", "income_bracket", "loyalty_tier",
+#             "days_since_signup", "customer_vintage_segment",
+#             # Derived labels/scores
+#             "churn_risk_score", "customer_value_segment", "engagement_level"
+#         )
+#     ) 
